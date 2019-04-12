@@ -1,2 +1,2 @@
 # shooter
-HTML5 JS shooter on canvas element
+Shooter on <canvas> and P5js
