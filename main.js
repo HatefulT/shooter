@@ -6,7 +6,7 @@ var w, h, spritemap, player, reloadingTime = 10, playerSpeed = 10,
     spawnTime = 100, spawnReload = 0;
 
 var preload = function() {
-  spritemap = loadImage("images/player.png");
+  spritemap = loadImage("player.png");
 }
 
 var setup = function() {
