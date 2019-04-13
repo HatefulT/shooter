@@ -29,7 +29,8 @@ var spritesParams = {
     { sx: 133, sy: 1, sw: 26, sh: 28 },
     { sx: 133, sy: 30, sw: 26, sh: 28 },
     { sx: 133, sy: 59, sw: 26, sh: 28 }
-  ]
+  ],
+  wall: { sx: 160, sy: 1, sw: 16, sh: 23 }
 };
 
 

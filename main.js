@@ -3,7 +3,8 @@ var w, h, spritemap, player, reloadingTime = 10, playerSpeed = 10,
     bullets = [], bulletSpeed = 20, gunDamage = 10,
     monsterWidth = 52, monsterHeight = 56, monsters = [],
     playerWidth = 32, playerHeight = 41,
-    spawnTime = 100, spawnReload = 0;
+    spawnTime = 100, spawnReload = 0,
+    mapWidth = 1024, mapHeight = 1012, wallSizeW = 32, wallSizeH = 46, wallSizeHC = 28;
 
 var preload = function() {
   spritemap = loadImage("player.png");
@@ -14,16 +15,24 @@ var setup = function() {
   h = windowHeight;
   createCanvas(w, h);
   noSmooth();
-  player = new Player(10, 10);
+  player = new Player(mapWidth/2, mapHeight/2);
 }
 
 var time = 0;
 
 var draw = function() {
+  if(player.y < 0 || player.y >= mapHeight || player.x < 0 || player.x >= mapWidth) console.log('O');
   background(color(20, 200, 20));
+  drawWalls();
+
+  if(spawnReload%spawnTime === 0) {
+    spawnEnemy();
+  }
+  spawnReload ++;
 
   player.update();
   player.draw();
+  if(keys.space || mouseIsPressed) player.shoot();
 
   for(var i=0; i<bullets.length; i++) {
     if(bullets[i].update()) continue;
@@ -34,16 +43,30 @@ var draw = function() {
     monsters[i].draw();
   }
 
-  if(keys.space || mouseIsPressed) player.shoot();
-
-  if(spawnReload%spawnTime === 0) {
-    monsters.push(new Monster(player.x+random(500)-250, player.y+random(500)-250,))
-  }
-  spawnReload ++;
+  var healthBarW = player.hp / 100 * w * 0.8;
+  // var healthBarW =10;
+  fill(color(200, 20, 20));
+  stroke(0);
+  rect(w/2 - 0.4*w, h - 20, healthBarW, 16, 5);
 
   moveIfNeed();
 
   time += 1;
+}
+
+var drawWalls = function() {
+  for(var x=0; x<=mapWidth; x+=wallSizeW) {
+    drawFraction(x-player.x+(width-wallSizeW)/2, -player.y+(height-wallSizeH)/2, wallSizeW, wallSizeH, spritesParams.wall);
+  }
+  for(var y=0; y<=mapHeight; y+=wallSizeHC) {
+    drawFraction(-player.x+(width-wallSizeW)/2, y-player.y+(height-wallSizeH)/2, wallSizeW, wallSizeH, spritesParams.wall);
+  }
+  for(var y=0; y<=mapHeight; y+=wallSizeHC) {
+    drawFraction(mapWidth-player.x+(width-wallSizeW)/2, y-player.y+(height-wallSizeH)/2, wallSizeW, wallSizeH, spritesParams.wall);
+  }
+  for(var x=0; x<=mapWidth; x+=wallSizeW) {
+    drawFraction(x-player.x+(width-wallSizeW)/2, mapHeight-player.y+(height-wallSizeH)/2, wallSizeW, wallSizeH, spritesParams.wall);
+  }
 }
 
 var keyPressed = function() {
@@ -62,6 +85,25 @@ var keyReleased = function() {
   else if(key === ' ') keys.space = false;
 }
 
+var spawnEnemy = function() {
+  for(var attempt=0; attempt<30; attempt++) {
+    var x = random(wallSizeW, mapWidth-wallSizeW),
+        y = random(wallSizeH, mapHeight-wallSizeHC-monsterHeight/2),
+        mon = new Monster(x, y),
+        collide = false;
+    for(var i=0; i<monsters.length; i++) {
+      if(myIntersect(mon, monsters[i])) {
+        collide = true;
+        break;
+      }
+    }
+    if(collide) {
+      continue;
+    }
+    monsters.push(mon);
+    break;
+  }
+}
 
 var moveIfNeed = function() {
   var vx = 0,
@@ -74,6 +116,9 @@ var moveIfNeed = function() {
   var vec = createVector(vx, vy);
   vec.normalize();
   vec.mult(playerSpeed);
+
+  if( player.x + vec.x-wallSizeW+2 < 0 || player.x + vec.x-2+wallSizeW >= mapWidth ) vec.x = 0;
+  if( player.y + vec.y-4 < 0 || player.y + vec.y+wallSizeH-10 >= mapHeight ) vec.y = 0;
 
   player.x += vec.x;
   player.y += vec.y;

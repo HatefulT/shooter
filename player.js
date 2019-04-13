@@ -4,7 +4,7 @@ var Player = function(x, y) {
   this.angle = 0;
   this.lookDir = 0;
   this.collisionRect = { w: playerWidth/5*4, h: playerHeight/5*4 };
-
+  this.hp = 100;
   this.animationFrame = 0;
   this.reload = 0;
 }
