@@ -4,12 +4,22 @@ var Monster = function(x, y) {
   this.hp = 100;
   this.animationFrame = 0;
   this.collisionRect = { w: monsterWidth/5*4, h: monsterHeight/5*4 };
+  this.punchTime = 0;
 }
 Monster.prototype.update = function () {
   if(this.hp <= 0) {
     monsters.splice(monsters.indexOf(this), 1);
     return true;
   }
+
+  if(myIntersect(player, this) && this.punchTime%monsterPunchTime === 0) {
+    player.hp -= monsterDamage;
+    this.punchTime++;
+  } else if(this.punchTime%monsterPunchTime != 0) {
+    this.punchTime++;
+  }
+
+
   var vec = createVector(player.x - this.x, player.y - this.y);
   vec.normalize();
   vec.mult(monsterSpeed);
