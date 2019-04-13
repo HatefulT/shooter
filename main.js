@@ -15,12 +15,18 @@ var setup = function() {
   h = windowHeight;
   createCanvas(w, h);
   noSmooth();
+  init();
+}
+var init = function() {
+  monsters = [];
+  bullets = [];
   player = new Player(mapWidth/2, mapHeight/2);
 }
 
 var time = 0;
 
 var draw = function() {
+  if(player.hp <= 0) init();
   if(player.y < 0 || player.y >= mapHeight || player.x < 0 || player.x >= mapWidth) console.log('O');
   background(color(20, 200, 20));
   drawWalls();
