@@ -1,10 +1,11 @@
 var w, h, spritemap, player, reloadingTime = 10, playerSpeed = 6,
     keys = { left: false, right: false, up: false, down: false, space: false },
     bullets = [], bulletSpeed = 20, gunDamage = 10,
-    monsterWidth = 52, monsterHeight = 56, monsters = [], monsterSpeed = 5, monsterPunchTime = 10, monsterDamage = 10,
+    monsterWidth = 52, monsterHeight = 56, monsters = [], monsterSpeed = 5, monsterPunchTime = 20, monsterDamage = 10,
     playerWidth = 32, playerHeight = 41,
-    spawnTime = 100, spawnReload = 0,
-    mapWidth = 1024, mapHeight = 1012, wallSizeW = 32, wallSizeH = 46, wallSizeHC = 28;
+    spawnTime = 150, spawnReload = 0,
+    mapWidth = 1024, mapHeight = 1012,
+    wallSizeW = 32, wallSizeH = 46, wallSizeHC = 28, walls = [], wallCollisionRect = { w: wallSizeW, h: wallSizeH };
 
 var preload = function() {
   spritemap = loadImage("player.png");
@@ -18,6 +19,24 @@ var setup = function() {
   init();
 }
 var init = function() {
+  walls = [];
+  initMapWalls();
+  for(var i=0; i<10; i++) {
+    var newWall = { x: random(mapWidth), y: random(mapHeight),
+      collisionRect: wallCollisionRect },
+      collide = false;
+    for(var k=0; k<walls.length; k++) {
+      if(myIntersect(newWall, walls[i])) {
+        collide = true;
+        break;
+      }
+    }
+    if(collide) {
+      continue;
+    }
+    walls.push(newWall);
+  }
+  sortWalls();
   monsters = [];
   bullets = [];
   player = new Player(mapWidth/2, mapHeight/2);
@@ -27,9 +46,7 @@ var time = 0;
 
 var draw = function() {
   if(player.hp <= 0) init();
-  if(player.y < 0 || player.y >= mapHeight || player.x < 0 || player.x >= mapWidth) console.log('O');
   background(color(20, 200, 20));
-  drawWalls();
 
   if(spawnReload%spawnTime === 0) {
     spawnEnemy();
@@ -40,6 +57,9 @@ var draw = function() {
   player.draw();
   if(keys.space || mouseIsPressed) player.shoot();
 
+  for(var i=0; i<walls.length; i++) {
+    drawFraction(walls[i].x-player.x+(width-wallSizeW)/2, walls[i].y-player.y+(height-wallSizeH)/2, wallSizeW, wallSizeH, spritesParams.wall);
+  }
   for(var i=0; i<bullets.length; i++) {
     if(bullets[i].update()) continue;
     bullets[i].draw();
@@ -49,30 +69,48 @@ var draw = function() {
     monsters[i].draw();
   }
 
-  var healthBarW = player.hp / 100 * w * 0.8;
-  // var healthBarW =10;
-  fill(color(200, 20, 20));
-  stroke(0);
-  rect(w/2 - 0.4*w, h - 20, healthBarW, 16, 5);
+  drawPlayersHealthBar();
 
   moveIfNeed();
 
   time += 1;
 }
 
-var drawWalls = function() {
+var drawPlayersHealthBar = function() {
+  var healthBarW = player.hp / 100 * w * 0.8;
+  fill(color(200, 20, 20));
+  stroke(0);
+  rect(w/2 - 0.4*w, h - 20, healthBarW, 16, 5);
+}
+
+var initMapWalls = function() {
   for(var x=0; x<=mapWidth; x+=wallSizeW) {
-    drawFraction(x-player.x+(width-wallSizeW)/2, -player.y+(height-wallSizeH)/2, wallSizeW, wallSizeH, spritesParams.wall);
+    walls.push({ x: x, y: -wallSizeHC-2, collisionRect: wallCollisionRect });
+    walls.push({ x: x, y: mapHeight-2, collisionRect: wallCollisionRect });
   }
-  for(var y=0; y<=mapHeight; y+=wallSizeHC) {
-    drawFraction(-player.x+(width-wallSizeW)/2, y-player.y+(height-wallSizeH)/2, wallSizeW, wallSizeH, spritesParams.wall);
+  for(var y=-wallSizeHC-2; y<=mapHeight; y+=wallSizeHC) {
+    walls.push({ x: 0, y: y, collisionRect: wallCollisionRect });
+    walls.push({ x: mapWidth, y: y, collisionRect: wallCollisionRect });
   }
-  for(var y=0; y<=mapHeight; y+=wallSizeHC) {
-    drawFraction(mapWidth-player.x+(width-wallSizeW)/2, y-player.y+(height-wallSizeH)/2, wallSizeW, wallSizeH, spritesParams.wall);
+}
+var sortWalls = function() {
+  walls = combSorting(walls);
+}
+
+function combSorting(array) {
+  const factor = 1.247;
+  let gapFactor = array.length / factor;
+
+  while (gapFactor > 1) {
+    const gap = Math.round(gapFactor);
+    for (let i = 0, j = gap; j < array.length; i++, j++) {
+      if (array[i].y >= array[j].y) {
+        [ array[i], array[j] ] = [ array[j], array[i] ];
+      }
+    }
+    gapFactor = gapFactor / factor;
   }
-  for(var x=0; x<=mapWidth; x+=wallSizeW) {
-    drawFraction(x-player.x+(width-wallSizeW)/2, mapHeight-player.y+(height-wallSizeH)/2, wallSizeW, wallSizeH, spritesParams.wall);
-  }
+  return array;
 }
 
 var keyPressed = function() {
@@ -81,6 +119,7 @@ var keyPressed = function() {
   else if(keyCode === UP_ARROW || key.toLowerCase() === 'w' || key.toLowerCase() === 'ц') keys.up = true;
   else if(keyCode === DOWN_ARROW || key.toLowerCase() === 's' || key.toLowerCase() === 'ы') keys.down = true;
   else if(key === ' ') keys.space = true;
+  else if(key.toLowerCase() === 'v' || key.toLowerCase() === 'м') buildVipRoom();
 }
 
 var keyReleased = function() {
@@ -103,12 +142,35 @@ var spawnEnemy = function() {
         break;
       }
     }
-    if(collide || dist(x, y, player.x, player.y) < 100) {
+    if(collide || dist(x, y, player.x, player.y) < 200) {
+      continue;
+    }
+    collide = false;
+    for(var i=0; i<walls.length; i++) {
+      if(myIntersect(mon, walls[i])) {
+        collide = true;
+        break;
+      }
+    }
+    if(collide) {
       continue;
     }
     monsters.push(mon);
     break;
   }
+}
+
+var buildVipRoom = function() {
+  walls.push({ x: wallSizeW, y: 3*wallSizeHC, collisionRect: wallCollisionRect });
+  walls.push({ x: 2*wallSizeW, y: 3*wallSizeHC, collisionRect: wallCollisionRect });
+  walls.push({ x: 3*wallSizeW, y: 3*wallSizeHC, collisionRect: wallCollisionRect });
+  walls.push({ x: 3*wallSizeW, y: 2*wallSizeHC, collisionRect: wallCollisionRect });
+  walls.push({ x: 3*wallSizeW, y: 2*wallSizeHC, collisionRect: wallCollisionRect });
+  walls.push({ x: 3*wallSizeW, y: wallSizeHC, collisionRect: wallCollisionRect });
+
+  player.x = 50;
+  player.y = 50;
+  sortWalls();
 }
 
 var moveIfNeed = function() {
@@ -123,8 +185,18 @@ var moveIfNeed = function() {
   vec.normalize();
   vec.mult(playerSpeed);
 
-  if( player.x + vec.x-wallSizeW+2 < 0 || player.x + vec.x-2+wallSizeW >= mapWidth ) vec.x = 0;
-  if( player.y + vec.y-4 < 0 || player.y + vec.y+wallSizeH-10 >= mapHeight ) vec.y = 0;
+  var newCollisionObjX = { x: player.x+vec.x, y: player.y+vec.y, collisionRect: { w: player.collisionRect.w, h: 10 } },
+      newCollisionObjY = { x: player.x+vec.x, y: player.y+vec.y, collisionRect: { w: 10, h: player.collisionRect.h } };
+
+  for(var i=0; i<walls.length; i++) {
+    if(myIntersect(walls[i], newCollisionObjX)) {
+      vec.x = 0;
+    }
+    if(myIntersect(walls[i], newCollisionObjY)) {
+      vec.y = 0;
+    }
+    if(vec.x === 0 && vec.y === 0) break;
+  }
 
   player.x += vec.x;
   player.y += vec.y;

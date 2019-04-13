@@ -24,6 +24,19 @@ Monster.prototype.update = function () {
   vec.normalize();
   vec.mult(monsterSpeed);
 
+  var newCollisionObjX = { x: this.x+vec.x, y: this.y+vec.y, collisionRect: { w: this.collisionRect.w, h: 10 } },
+      newCollisionObjY = { x: this.x+vec.x, y: this.y+vec.y, collisionRect: { w: 10, h: this.collisionRect.h } };
+
+  for(var i=0; i<walls.length; i++) {
+    if(myIntersect(walls[i], newCollisionObjX)) {
+      vec.x = 0;
+    }
+    if(myIntersect(walls[i], newCollisionObjY)) {
+      vec.y = 0;
+    }
+    if(vec.x === 0 && vec.y === 0) break;
+  }
+
   this.x += vec.x;
   this.y += vec.y;
 };
