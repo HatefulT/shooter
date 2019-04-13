@@ -10,7 +10,12 @@ Monster.prototype.update = function () {
     monsters.splice(monsters.indexOf(this), 1);
     return true;
   }
-  var vec = createVector()
+  var vec = createVector(player.x - this.x, player.y - this.y);
+  vec.normalize();
+  vec.mult(monsterSpeed);
+
+  this.x += vec.x;
+  this.y += vec.y;
 };
 Monster.prototype.draw = function() {
   drawFraction( this.x-player.x+(width-monsterWidth)/2, this.y-player.y+(height-monsterHeight)/2, monsterWidth, monsterHeight, spritesParams.monster[round(this.animationFrame)%3] )

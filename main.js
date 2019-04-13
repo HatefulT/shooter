@@ -1,7 +1,7 @@
-var w, h, spritemap, player, reloadingTime = 10, playerSpeed = 10,
+var w, h, spritemap, player, reloadingTime = 10, playerSpeed = 6,
     keys = { left: false, right: false, up: false, down: false, space: false },
     bullets = [], bulletSpeed = 20, gunDamage = 10,
-    monsterWidth = 52, monsterHeight = 56, monsters = [],
+    monsterWidth = 52, monsterHeight = 56, monsters = [], monsterSpeed = 5,
     playerWidth = 32, playerHeight = 41,
     spawnTime = 100, spawnReload = 0,
     mapWidth = 1024, mapHeight = 1012, wallSizeW = 32, wallSizeH = 46, wallSizeHC = 28;
@@ -97,7 +97,7 @@ var spawnEnemy = function() {
         break;
       }
     }
-    if(collide) {
+    if(collide || dist(x, y, player.x, player.y) < 100) {
       continue;
     }
     monsters.push(mon);
