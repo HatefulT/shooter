@@ -1,11 +1,12 @@
-var w, h, spritemap, player, reloadingTime = 10, playerSpeed = 6,
+var w, h, spritemap, player, reloadingTime = 10, playerSpeed = 6, buildingMode = false;
     keys = { left: false, right: false, up: false, down: false, space: false },
     bullets = [], bulletSpeed = 20, gunDamage = 10,
     monsterWidth = 52, monsterHeight = 56, monsters = [], monsterSpeed = 5, monsterPunchTime = 20, monsterDamage = 10,
     playerWidth = 32, playerHeight = 41,
     spawnTime = 150, spawnReload = 0,
     mapWidth = 1024, mapHeight = 1012,
-    wallSizeW = 32, wallSizeH = 46, wallSizeHC = 28, walls = [], wallCollisionRect = { w: wallSizeW, h: wallSizeH };
+    wallSizeW = 32, wallSizeH = 46, wallSizeHC = 28, walls = [],
+    wallCollisionRect = { w: wallSizeW, h: wallSizeH }, wallBuildCollisionRect = { w: wallSizeW, h: wallSizeHC };
 
 var preload = function() {
   spritemap = loadImage("player.png");
@@ -18,6 +19,7 @@ var setup = function() {
   noSmooth();
   init();
 }
+
 var init = function() {
   walls = [];
   initMapWalls();
@@ -55,7 +57,7 @@ var draw = function() {
 
   player.update();
   player.draw();
-  if(keys.space || mouseIsPressed) player.shoot();
+  if(!buildingMode && (keys.space || mouseIsPressed) ) player.shoot();
 
   for(var i=0; i<walls.length; i++) {
     drawFraction(walls[i].x-player.x+(width-wallSizeW)/2, walls[i].y-player.y+(height-wallSizeH)/2, wallSizeW, wallSizeH, spritesParams.wall);
@@ -70,6 +72,10 @@ var draw = function() {
   }
 
   drawPlayersHealthBar();
+  if(buildingMode) {
+    writeBuildSign();
+    if(mouseIsPressed) tryToBuildWall();
+  }
 
   moveIfNeed();
 
@@ -81,6 +87,29 @@ var drawPlayersHealthBar = function() {
   fill(color(200, 20, 20));
   stroke(0);
   rect(w/2 - 0.4*w, h - 20, healthBarW, 16, 5);
+}
+
+var writeBuildSign = function() {
+  fill(color(20, 20, 220));
+  stroke(color(10, 10, 200));
+  textAlign(CENTER);
+  textSize(16);
+  text("BUILD", w/2, 30);
+}
+
+var tryToBuildWall = function() {
+  var newWall = { x: mouseX-width/2+player.x, y: mouseY-height/2+player.y, collisionRect: wallBuildCollisionRect };
+  var can = true;
+  for(var i=0; i<walls.length; i++) {
+    if(myIntersect(walls[i], newWall)) {
+      can = false;
+      break;
+    }
+  }
+  if(can) {
+    newWall.collisionRect = wallCollisionRect;
+    walls.push(newWall);
+  }
 }
 
 var initMapWalls = function() {
@@ -96,7 +125,6 @@ var initMapWalls = function() {
 var sortWalls = function() {
   walls = combSorting(walls);
 }
-
 function combSorting(array) {
   const factor = 1.247;
   let gapFactor = array.length / factor;
@@ -120,6 +148,7 @@ var keyPressed = function() {
   else if(keyCode === DOWN_ARROW || key.toLowerCase() === 's' || key.toLowerCase() === 'ы') keys.down = true;
   else if(key === ' ') keys.space = true;
   else if(key.toLowerCase() === 'v' || key.toLowerCase() === 'м') buildVipRoom();
+  else if(key.toLowerCase() === 'b' || key.toLowerCase() === 'и') buildingMode = !buildingMode;
 }
 
 var keyReleased = function() {
